@@ -96,37 +96,24 @@ body { min-height:100vh; background: linear-gradient(135deg, #000000, #ffffff); 
     z-index: 900;
 }
 
-.footer .left {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+.footer .left { display: flex; align-items: center; gap: 10px; }
+.footer .right { opacity: 0.8; }
 
-.footer .right {
-    opacity: 0.8;
-}
-
-/* Responsive for mobile */
+/* Responsive */
 @media screen and (max-width:768px){
     .sidebar { display:none; }
     .main { margin-left:0; padding:20px; }
-
     .mobile-title { display:block; margin-bottom:10px; }
-
     .search-bar { flex-direction:column; gap:10px; }
-
     #results { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:15px; }
-
     #searchInput { padding:20px; font-size:18px; }
     #searchBtn { padding:20px; font-size:18px; }
-
     .bottom-player-bar { flex-direction: column; align-items: center; gap:10px; padding:15px; }
     .center-info img { width:50px; height:50px; }
     #progressBar { max-width:280px; height:4px; }
     .song-details #miniSongTitle { font-size:14px; }
     .song-details #miniComposer { font-size:12px; }
     #miniVolume { width:120px; }
-
     .footer { padding:10px 15px; font-size:12px; }
 }
 </style>
@@ -140,7 +127,7 @@ body { min-height:100vh; background: linear-gradient(135deg, #000000, #ffffff); 
         <div class="mobile-title">Synthoria</div>
         <div class="search-bar">
             <input type="text" id="searchInput" placeholder="Search songs...">
-            <button id="searchBtn" style="color: white;">Search</button>
+            <button id="searchBtn">Search</button>
         </div>
         <div id="loader"></div>
         <div id="results"></div>
@@ -158,24 +145,20 @@ body { min-height:100vh; background: linear-gradient(135deg, #000000, #ffffff); 
     </div>
     <div class="right-controls">
         <input type="range" id="miniVolume" min="0" max="1" step="0.01" value="0.8">
-        <span id="volumeValue" style="font-size:12px;">80%</span>
+        <span id="volumeValue">80%</span>
     </div>
 </div>
 
-<!-- Footer -->
 <div class="footer">
-    <div class="left">
-        <span>Synthoria ©</span>
-    </div>
-    <div><span>Still on development</span></div>
+    <div class="left">Synthoria ©</div>
+    <div>Still on development</div>
     <div class="right">.dev Abhiram</div>
 </div>
 
 <audio id="audioPlayer"></audio>
 
 <script>
-const BACKEND_URL = "https://synthoria.onrender.com"; // <-- Your Render backend URL
-
+const BACKEND_URL = "https://YOUR_RENDER_APP_URL"; // <-- Replace with your Render URL
 const searchInput = document.getElementById("searchInput");
 const searchBtn = document.getElementById("searchBtn");
 const resultsDiv = document.getElementById("results");
@@ -198,7 +181,6 @@ let currentVideoId = null;
 searchBtn.onclick = async () => {
     const query = searchInput.value.trim();
     if (!query) return;
-
     loader.style.display = "block";
     resultsDiv.innerHTML = "";
 
@@ -207,7 +189,6 @@ searchBtn.onclick = async () => {
         const data = await response.json();
         loader.style.display = "none";
         resultsDiv.innerHTML = "";
-
         searchContainer.classList.add("top");
 
         data.forEach(item => {
@@ -225,24 +206,30 @@ searchBtn.onclick = async () => {
 
 async function playSong(videoId, thumbnailSrc, songTitle, composer){
     currentVideoId = videoId;
-    const response = await fetch(`${BACKEND_URL}/api/play`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({video_id:videoId})
-    });
-    const res = await response.json();
-    audioPlayer.src = res.url;
-    audioPlayer.play();
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/play`, {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({video_id:videoId})
+        });
+        const res = await response.json();
+        if(res.url){
+            audioPlayer.src = res.url;
+            audioPlayer.play();
+        }
 
-    fullThumbnailImg.src = thumbnailSrc;
-    fullscreenThumbnail.classList.add("show");
-    setTimeout(() => { fullscreenThumbnail.classList.remove("show"); }, 3000);
+        fullThumbnailImg.src = thumbnailSrc;
+        fullscreenThumbnail.classList.add("show");
+        setTimeout(() => fullscreenThumbnail.classList.remove("show"), 3000);
 
-    miniThumbnail.src = thumbnailSrc;
-    miniSongTitle.textContent = songTitle;
-    miniComposer.textContent = composer;
-    bottomPlayerBar.classList.add("show");
-    miniPlayBtn.className = "fas fa-pause";
+        miniThumbnail.src = thumbnailSrc;
+        miniSongTitle.textContent = songTitle;
+        miniComposer.textContent = composer;
+        bottomPlayerBar.classList.add("show");
+        miniPlayBtn.className = "fas fa-pause";
+    } catch(e){
+        console.error(e);
+    }
 }
 
 miniPlayBtn.onclick = () => {
