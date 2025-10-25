@@ -5,18 +5,22 @@ import os, uuid, shutil, atexit, yt_dlp
 app = Flask(__name__, static_folder=".", static_url_path="")
 CORS(app)
 
+# Directories
 TEMP_DIR = "temp_song"
 SAVED_DIR = "saved_songs"
 os.makedirs(TEMP_DIR, exist_ok=True)
 os.makedirs(SAVED_DIR, exist_ok=True)
 
+# Clear temp folder on exit
 def clear_temp():
     for f in os.listdir(TEMP_DIR):
-        os.remove(os.path.join(TEMP_DIR, f))
+        try:
+            os.remove(os.path.join(TEMP_DIR, f))
+        except:
+            pass
 atexit.register(clear_temp)
 
-
-# ✅ Serve frontend files (HTML/JS/CSS)
+# Serve frontend
 @app.route("/")
 def index():
     return send_from_directory(".", "index.html")
@@ -25,31 +29,44 @@ def index():
 def serve_static(path):
     return send_from_directory(".", path)
 
-
-# ✅ Search API
+# ===== Search YouTube =====
 @app.route("/api/search")
 def search():
     query = request.args.get("q")
     if not query:
         return jsonify([])
+
     try:
-        ydl_opts = {"quiet": True, "extract_flat": True, "skip_download": True}
+        ydl_opts = {
+            "quiet": True,
+            "extract_flat": True,
+            "skip_download": True,
+            "nocheckcertificate": True,
+            "ignoreerrors": True,
+            "default_search": "auto"
+        }
+
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            results = ydl.extract_info(f"ytsearch10:{query}", download=False)["entries"]
+            info = ydl.extract_info(f"ytsearch10:{query}", download=False)
+            results = info.get("entries", [])
 
         songs = []
         for r in results:
+            if r is None:
+                continue
             songs.append({
-                "id": r["id"],
+                "id": r.get("id"),
                 "title": r.get("title", "Unknown Title"),
-                "thumbnail": r.get("thumbnail", f"https://img.youtube.com/vi/{r['id']}/mqdefault.jpg")
+                "thumbnail": r.get("thumbnail", f"https://img.youtube.com/vi/{r.get('id')}/mqdefault.jpg")
             })
+
         return jsonify(songs)
+
     except Exception as e:
+        print("Search error:", e)
         return jsonify({"error": str(e)}), 500
 
-
-# ✅ Play/Convert YouTube audio
+# ===== Play / convert audio =====
 @app.route("/api/play", methods=["POST"])
 def play():
     data = request.get_json()
@@ -58,8 +75,12 @@ def play():
         return jsonify({"error": "Missing video_id"}), 400
 
     try:
+        # Clear previous temp files
         for f in os.listdir(TEMP_DIR):
-            os.remove(os.path.join(TEMP_DIR, f))
+            try:
+                os.remove(os.path.join(TEMP_DIR, f))
+            except:
+                pass
 
         temp_filename = f"{uuid.uuid4()}.mp3"
         output_path = os.path.join(TEMP_DIR, temp_filename)
@@ -72,7 +93,8 @@ def play():
                 "preferredcodec": "mp3",
                 "preferredquality": "192"
             }],
-            "quiet": True
+            "quiet": True,
+            "nocheckcertificate": True
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -84,15 +106,15 @@ def play():
             "url": f"/temp/{temp_filename}"
         })
     except Exception as e:
+        print("Play error:", e)
         return jsonify({"error": str(e)}), 500
 
-
+# ===== Serve temp audio =====
 @app.route("/temp/<filename>")
 def serve_temp(filename):
     return send_from_directory(TEMP_DIR, filename)
 
-
-# ✅ Saving songs
+# ===== Save songs =====
 @app.route("/api/save", methods=["POST"])
 def save_song():
     data = request.get_json()
@@ -112,19 +134,16 @@ def save_song():
 
     return jsonify({"error": "Temp file not found"}), 404
 
-
 @app.route("/api/saved")
 def saved_songs():
     files = [f for f in os.listdir(SAVED_DIR) if f.endswith(".mp3")]
     return jsonify(files)
 
-
 @app.route("/saved/<filename>")
 def serve_saved(filename):
     return send_from_directory(SAVED_DIR, filename)
 
-
-# ✅ Render deployment fix — use PORT environment variable
+# ===== Run App =====
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
