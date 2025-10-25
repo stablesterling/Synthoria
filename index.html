@@ -155,14 +155,14 @@ body { min-height:100vh; background: linear-gradient(135deg, #000000, #ffffff); 
     <div class="right">.dev Abhiram</div>
 </div>
 
-<audio id="audioPlayer"></audio>
+<!-- Hidden iframe player -->
+<iframe id="hiddenPlayer" style="display:none;" width="0" height="0" frameborder="0" allow="autoplay"></iframe>
 
 <script>
-const BACKEND_URL = "https://syntharia.onrender.com"; // Make sure this is your live backend
+const BACKEND_URL = "https://syntharia.onrender.com";
 const searchInput = document.getElementById("searchInput");
 const searchBtn = document.getElementById("searchBtn");
 const resultsDiv = document.getElementById("results");
-const audioPlayer = document.getElementById("audioPlayer");
 const fullscreenThumbnail = document.getElementById("fullscreenThumbnail");
 const fullThumbnailImg = document.getElementById("fullThumbnailImg");
 const bottomPlayerBar = document.getElementById("bottomPlayerBar");
@@ -177,8 +177,8 @@ const searchContainer = document.getElementById("searchContainer");
 const loader = document.getElementById("loader");
 
 let currentVideoId = null;
-let currentAudioURL = null;
 
+// Search
 searchBtn.onclick = async () => {
     const query = searchInput.value.trim();
     if (!query) return;
@@ -205,63 +205,40 @@ searchBtn.onclick = async () => {
     }
 };
 
+// Play song using hidden YouTube iframe
 async function playSong(videoId, thumbnailSrc, songTitle, composer){
     currentVideoId = videoId;
-    try {
-        const response = await fetch(`${BACKEND_URL}/api/play`, {
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({video_id:videoId})
-        });
-        const res = await response.json();
-        if(res.url){
-            // Fetch audio as blob to avoid Render temp folder issues
-            const audioResp = await fetch(`${BACKEND_URL}${res.url}`);
-            const audioBlob = await audioResp.blob();
-            currentAudioURL = URL.createObjectURL(audioBlob);
-            audioPlayer.src = currentAudioURL;
-            audioPlayer.play();
-        }
+    const iframe = document.getElementById("hiddenPlayer");
+    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&loop=1&playlist=${videoId}`;
 
-        fullThumbnailImg.src = thumbnailSrc;
-        fullscreenThumbnail.classList.add("show");
-        setTimeout(() => fullscreenThumbnail.classList.remove("show"), 3000);
+    // Thumbnail animation
+    fullThumbnailImg.src = thumbnailSrc;
+    fullscreenThumbnail.classList.add("show");
+    setTimeout(() => fullscreenThumbnail.classList.remove("show"), 3000);
 
-        miniThumbnail.src = thumbnailSrc;
-        miniSongTitle.textContent = songTitle;
-        miniComposer.textContent = composer;
-        bottomPlayerBar.classList.add("show");
-        miniPlayBtn.className = "fas fa-pause";
-    } catch(e){
-        console.error(e);
-    }
+    // Update bottom bar
+    miniThumbnail.src = thumbnailSrc;
+    miniSongTitle.textContent = songTitle;
+    miniComposer.textContent = composer;
+    bottomPlayerBar.classList.add("show");
+    miniPlayBtn.className = "fas fa-pause";
 }
 
+// Play/pause
 miniPlayBtn.onclick = () => {
-    if(audioPlayer.paused){
-        audioPlayer.play();
+    const iframe = document.getElementById("hiddenPlayer");
+    if(miniPlayBtn.className === "fas fa-play"){
+        iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
         miniPlayBtn.className = "fas fa-pause";
     } else {
-        audioPlayer.pause();
+        iframe.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
         miniPlayBtn.className = "fas fa-play";
     }
 };
 
+// Volume control (works only for audio element if used)
 miniVolume.oninput = () => {
-    audioPlayer.volume = miniVolume.value;
     volumeValue.textContent = Math.round(miniVolume.value * 100) + "%";
-};
-
-audioPlayer.ontimeupdate = () => {
-    if(audioPlayer.duration){
-        progressBar.value = (audioPlayer.currentTime / audioPlayer.duration) * 100;
-    }
-};
-
-progressBar.oninput = () => {
-    if(audioPlayer.duration){
-        audioPlayer.currentTime = (progressBar.value / 100) * audioPlayer.duration;
-    }
 };
 </script>
 </body>
