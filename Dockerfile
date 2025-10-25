@@ -1,4 +1,4 @@
-# Use official Python image
+# Use official Python slim image
 FROM python:3.13-slim
 
 # Set working directory
@@ -8,14 +8,14 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install ffmpeg
-RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+# Install ffmpeg and curl
+RUN apt-get update && apt-get install -y ffmpeg curl && rm -rf /var/lib/apt/lists/*
 
-# Copy app code
+# Copy all app files
 COPY . .
 
-# Expose port 10000
+# Expose the port for Render
 EXPOSE 10000
 
-# Run the app with Gunicorn
+# Start app with Gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:10000", "app:app"]
