@@ -1,40 +1,64 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yt_dlp
-import os
 
 app = Flask(__name__)
 CORS(app)
 
+# Root route so Render won't 404
+@app.route("/")
+def home():
+    return "Synthoria backend is live!"
+
+# Search route
 @app.route("/api/search")
 def search():
-    query = request.args.get("q")
+    query = request.args.get("q", "")
     if not query:
         return jsonify([])
-    try:
-        ydl_opts = {"quiet": True, "extract_flat": True, "skip_download": True}
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            results = ydl.extract_info(f"ytsearch10:{query}", download=False)["entries"]
-        songs = [{"id": r["id"], "title": r["title"], "thumbnail": r.get("thumbnail", f"https://img.youtube.com/vi/{r['id']}/mqdefault.jpg")} for r in results]
-        return jsonify(songs)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
+    try:
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "quiet": True,
+            "noplaylist": True,
+        }
+        results = []
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            search_result = ydl.extract_info(f"ytsearch5:{query}", download=False)['entries']
+            for entry in search_result:
+                results.append({
+                    "id": entry.get("id"),
+                    "title": entry.get("title"),
+                    "thumbnail": entry.get("thumbnail"),
+                    "composer": entry.get("uploader")
+                })
+        return jsonify(results)
+    except Exception as e:
+        print("Search error:", e)
+        return jsonify({"error": "Failed to search"}), 500
+
+# Play route
 @app.route("/api/play", methods=["POST"])
 def play():
     data = request.get_json()
     video_id = data.get("video_id")
     if not video_id:
-        return jsonify({"error": "Missing video_id"}), 400
+        return jsonify({"error": "video_id missing"}), 400
+
     try:
-        ydl_opts = {"format": "bestaudio/best", "quiet": True, "skip_download": True}
+        url = f"https://www.youtube.com/watch?v={video_id}"
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "quiet": True,
+        }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-            audio_url = info["url"]
-        return jsonify({"title": info["title"], "url": audio_url})
+            info = ydl.extract_info(url, download=False)
+            audio_url = info['url']
+        return jsonify({"url": audio_url})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print("Play error:", e)
+        return jsonify({"error": "Failed to get audio"}), 500
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=10000)
