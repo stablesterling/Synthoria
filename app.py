@@ -1,18 +1,14 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yt_dlp
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app)  # allow requests from any origin (GitHub Pages)
 
-FRONTEND_PATH = r"C:\BMW\music_app"
-DOWNLOAD_FOLDER = os.path.join(FRONTEND_PATH, "downloads")
+# Folder to store downloaded songs
+DOWNLOAD_FOLDER = "downloads"
 os.makedirs(DOWNLOAD_FOLDER, exist_ok=True)
-
-@app.route("/")
-def index():
-    return send_from_directory(FRONTEND_PATH, "index.html")
 
 @app.route("/api/search")
 def search():
@@ -23,7 +19,14 @@ def search():
         ydl_opts = {"quiet": True, "extract_flat": True, "skip_download": True}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             results = ydl.extract_info(f"ytsearch10:{query}", download=False)["entries"]
-        songs = [{"id": r["id"], "title": r["title"], "thumbnail": r.get("thumbnail", f"https://img.youtube.com/vi/{r['id']}/mqdefault.jpg")} for r in results]
+        songs = [
+            {
+                "id": r["id"],
+                "title": r["title"],
+                "thumbnail": r.get("thumbnail", f"https://img.youtube.com/vi/{r['id']}/mqdefault.jpg")
+            }
+            for r in results
+        ]
         return jsonify(songs)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -50,7 +53,10 @@ def download():
     if not video_id:
         return jsonify({"error": "Missing video_id"}), 400
     try:
-        ydl_opts = {"format": "bestaudio/best", "outtmpl": os.path.join(DOWNLOAD_FOLDER, "%(title)s.%(ext)s")}
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "outtmpl": os.path.join(DOWNLOAD_FOLDER, "%(title)s.%(ext)s")
+        }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=True)
             filename = os.path.basename(ydl.prepare_filename(info))
