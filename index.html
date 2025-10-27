@@ -1,275 +1,85 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Music Player - Synthoria</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-* { box-sizing: border-box; margin:0; padding:0; font-family: 'Poppins', sans-serif; transition: all 0.3s ease; }
-body { min-height:100vh; background: linear-gradient(135deg, #000000, #ffffff); color:#fff; display:flex; flex-direction:row; }
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Maintenance</title>
+  <style>
+    :root{
+      --bg:#0f1720;
+      --accent:#ffffff;
+    }
+    html, body{
+      height:100%;
+      margin:0;
+    }
+    body{
+      background:#000000;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color:var(--accent);
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-start;
+    }
+    .container{
+      position:relative;
+      flex:1;
+      width:100%;
+      overflow:hidden;
+    }
 
-/* Sidebar */
-.sidebar { width:260px; background:#111428; display:flex; flex-direction:column; gap:25px; padding:35px 24px;
-    border-right:2px solid #2a2a3f; height:100vh; position:fixed; left:0; top:0; box-shadow:5px 0 15px rgba(0,0,0,0.7);}
-.sidebar h2 { font-size:28px; color:#fff; text-shadow: 1px 1px 5px #000; }
+    /* Top-left maintenance text */
+    .maintenance{
+      position:absolute;
+      top:20px;
+      left:20px;
+      color:var(--accent);
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:-1px;
+      line-height:1.2;
+      font-size:clamp(60px, 10vw, 150px);
+      text-shadow:0 6px 18px rgb(0, 0, 0);
+      margin:0;
+      padding:0;
+      white-space:pre-line;
+    }
 
-/* Main content */
-.main { margin-left:260px; flex:1; padding:30px 50px; overflow-y:auto; background: rgba(10,10,25,0.6); backdrop-filter: blur(10px); color:#fff; position: relative; padding-bottom:120px; }
+    /* Footer */
+    footer{
+      text-align:center;
+      padding:15px 0;
+      font-size:clamp(16px, 2vw, 24px);
+      color:rgba(255,255,255,0.7);
+      background: rgba(0,0,0,0.3);
+      width:100%;
+      position:relative;
+      bottom:0;
+    }
 
-/* Mobile title */
-.mobile-title { display:none; text-align:center; font-size:28px; font-weight:bold; margin-bottom:20px; }
-
-/* Search */
-.search-container { display:flex; justify-content:center; align-items:flex-start; flex-direction:column; transition: all 0.5s ease; width:100%; }
-.search-container.top { 
-    position: fixed; top:10px; left:50%; transform: translateX(-50%);
-    width:90%; max-width:600px; justify-content:center; margin:0; z-index:1000;
-}
-
-.search-bar { width:100%; display:flex; gap:15px; margin-bottom:20px; }
-#searchInput { flex:1; padding:16px; border-radius:12px; border:none; background:#1a1a3b; color:#fff; font-size:16px; box-shadow: inset 0 0 10px rgba(0,0,0,0.7); }
-#searchInput:focus { outline:none; box-shadow: 0 0 15px #000000; }
-#searchBtn { background:#000000; color:#fff; padding:16px 24px; border:none; cursor:pointer; border-radius:12px; font-size:16px; font-weight:bold; box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: all 0.3s ease; }
-#searchBtn:hover { background:#790000; transform: scale(1.05); }
-
-/* Loader */
-#loader { display:none; border:4px solid #f3f3f300; border-top:4px solid #ff0000; border-radius:50%; width:40px; height:40px; animation: spin 1s linear infinite; margin:20px auto; }
-@keyframes spin { 0% { transform:rotate(0deg); } 100% { transform:rotate(360deg); } }
-
-/* Results */
-#results {
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-    gap:25px;
-    width:100%;
-}
-
-.card { background:#1a1a3b; padding:16px; border-radius:15px; cursor:pointer; text-align:center;
-    box-shadow:0 5px 20px rgba(0,0,0,0.5); transition: all 0.3s ease; }
-.card:hover { transform: translateY(-10px) scale(1.05); background:#222244; }
-.card img { width:100%; height:150px; object-fit:cover; border-radius:12px; transition: all 0.3s ease; }
-.card img:hover { transform: scale(1.1); }
-.card-title { margin-top:12px; font-size:16px; font-weight:bold; text-shadow:1px 1px 3px #000; }
-
-/* Fullscreen thumbnail */
-.fullscreen-thumbnail { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); display:flex; justify-content:center; align-items:center; z-index:999; opacity:0; transition: opacity 0.5s ease; pointer-events:none; }
-.fullscreen-thumbnail img { max-width:90%; max-height:90%; border-radius:12px; box-shadow:0 0 50px rgba(0,0,0,0.7);}
-.fullscreen-thumbnail.show { opacity:1; }
-
-/* Bottom player bar */
-.bottom-player-bar { position: fixed; bottom:0; left:100%; width:100%; background: rgba(10,10,20,0.95); display:flex; justify-content: space-between; align-items:center; padding:10px 20px; box-shadow: 0 -5px 15px rgba(0,0,0,0.7); z-index:1000; transition:left 0.5s ease; flex-wrap: wrap; }
-.bottom-player-bar.show { left:0; }
-
-.left-controls i { font-size:28px; cursor:pointer; color:#fff; }
-
-/* Center info with thumbnail & song details */
-.center-info { display:flex; flex-direction:column; align-items:center; flex:1; gap:5px; color:#fff; margin: 5px 0; }
-.center-info img { width:60px; height:60px; border-radius:8px; }
-.song-details { text-align:center; }
-.song-details #miniSongTitle { font-weight:bold; font-size:14px; }
-.song-details #miniComposer { font-size:12px; opacity:0.8; }
-
-/* Progress bar */
-#progressBar { -webkit-appearance: none; width:100%; max-width:400px; height: 5px; border-radius: 5px; background: rgba(255,255,255,0.3); cursor: pointer; }
-#progressBar::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: white; cursor: pointer; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-#progressBar::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: white; cursor: pointer; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-
-/* Volume control */
-.right-controls { display:flex; flex-direction:column; align-items:center; gap:5px; margin:5px 0; }
-#miniVolume { width:120px; accent-color:white; }
-
-/* Footer */
-.footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: rgba(10,10,20,0.95);
-    color: #fff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 30px;
-    box-shadow: 0 -5px 15px rgba(0,0,0,0.7);
-    font-size: 14px;
-    z-index: 900;
-}
-
-.footer .left { display: flex; align-items: center; gap: 10px; }
-.footer .right { opacity: 0.8; }
-
-/* Responsive */
-@media screen and (max-width:768px){
-    .sidebar { display:none; }
-    .main { margin-left:0; padding:20px; }
-    .mobile-title { display:block; margin-bottom:10px; }
-    .search-bar { flex-direction:column; gap:10px; }
-    #results { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap:15px; }
-    #searchInput { padding:20px; font-size:18px; }
-    #searchBtn { padding:20px; font-size:18px; }
-    .bottom-player-bar { flex-direction: column; align-items: center; gap:10px; padding:15px; }
-    .center-info img { width:50px; height:50px; }
-    #progressBar { max-width:280px; height:4px; }
-    .song-details #miniSongTitle { font-size:14px; }
-    .song-details #miniComposer { font-size:12px; }
-    #miniVolume { width:120px; }
-    .footer { padding:10px 15px; font-size:12px; }
-}
-
-/* Hidden YouTube iframe */
-#ytPlayer { display:none; }
-</style>
+    @media (max-width:420px){
+      .maintenance{
+        top:12px;
+        left:12px;
+        font-size:clamp(30px, 12vw, 60px);
+      }
+      footer{
+        font-size:clamp(14px,4vw,18px);
+      }
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <h1 class="maintenance">
+Page Under
+Maintenance
+We’ll be back shortly
+    </h1>
+  </div>
 
-<div class="sidebar"><h2>Synthoria</h2></div>
-
-<div class="main">
-    <div class="search-container" id="searchContainer">
-        <div class="mobile-title">Synthoria</div>
-        <div class="search-bar">
-            <input type="text" id="searchInput" placeholder="Search songs...">
-            <button id="searchBtn">Search</button>
-        </div>
-        <div id="loader"></div>
-        <div id="results"></div>
-    </div>
-</div>
-
-<div id="fullscreenThumbnail" class="fullscreen-thumbnail"><img id="fullThumbnailImg" src="" alt="Album Art"></div>
-
-<div id="bottomPlayerBar" class="bottom-player-bar">
-    <div class="left-controls"><i id="miniPlayBtn" class="fas fa-play"></i></div>
-    <div class="center-info">
-        <input type="range" id="progressBar" min="0" max="100" value="0" step="0.1">
-        <img id="miniThumbnail" src="" alt="Thumbnail">
-        <div class="song-details"><div id="miniSongTitle">Song Name</div><div id="miniComposer">Composer Name</div></div>
-    </div>
-    <div class="right-controls">
-        <input type="range" id="miniVolume" min="0" max="1" step="0.01" value="0.8">
-        <span id="volumeValue">80%</span>
-    </div>
-</div>
-
-<div class="footer">
-    <div class="left">Synthoria ©</div>
-    <div>Still on development</div>
-    <div class="right">.dev Abhiram</div>
-</div>
-
-<!-- Hidden YouTube iframe for playback -->
-<div id="ytPlayer"></div>
-
-<script src="https://www.youtube.com/iframe_api"></script>
-<script>
-const BACKEND_URL = "https://syntharia.onrender.com";
-const searchInput = document.getElementById("searchInput");
-const searchBtn = document.getElementById("searchBtn");
-const resultsDiv = document.getElementById("results");
-const fullscreenThumbnail = document.getElementById("fullscreenThumbnail");
-const fullThumbnailImg = document.getElementById("fullThumbnailImg");
-const bottomPlayerBar = document.getElementById("bottomPlayerBar");
-const miniPlayBtn = document.getElementById("miniPlayBtn");
-const miniThumbnail = document.getElementById("miniThumbnail");
-const miniSongTitle = document.getElementById("miniSongTitle");
-const miniComposer = document.getElementById("miniComposer");
-const miniVolume = document.getElementById("miniVolume");
-const volumeValue = document.getElementById("volumeValue");
-const progressBar = document.getElementById("progressBar");
-const searchContainer = document.getElementById("searchContainer");
-const loader = document.getElementById("loader");
-
-let player;
-let currentVideoId = null;
-let isPlaying = false;
-
-// Load YouTube IFrame API
-function onYouTubeIframeAPIReady(){
-    player = new YT.Player('ytPlayer', {
-        height: '0',
-        width: '0',
-        videoId: '',
-        playerVars: { 'autoplay': 0, 'controls': 0 },
-        events: {
-            'onReady': onPlayerReady,
-            'onStateChange': onPlayerStateChange
-        }
-    });
-}
-
-function onPlayerReady(event){
-    player.setVolume(miniVolume.value * 100);
-}
-
-function onPlayerStateChange(event){
-    if(event.data == YT.PlayerState.PLAYING){
-        isPlaying = true;
-        miniPlayBtn.className = "fas fa-pause";
-    } else {
-        isPlaying = false;
-        miniPlayBtn.className = "fas fa-play";
-    }
-}
-
-// Search songs
-searchBtn.onclick = async () => {
-    const query = searchInput.value.trim();
-    if (!query) return;
-    loader.style.display = "block";
-    resultsDiv.innerHTML = "";
-
-    try {
-        const response = await fetch(`${BACKEND_URL}/api/search?q=${query}`);
-        const data = await response.json();
-        loader.style.display = "none";
-        resultsDiv.innerHTML = "";
-        searchContainer.classList.add("top");
-
-        data.forEach(item => {
-            const card = document.createElement("div");
-            card.className = "card";
-            card.innerHTML = `<img src="${item.thumbnail}"><div class="card-title">${item.title}</div>`;
-            card.onclick = () => playSong(item.id, item.thumbnail, item.title, item.composer || "Unknown");
-            resultsDiv.appendChild(card);
-        });
-    } catch (err) {
-        loader.style.display = "none";
-        console.error(err);
-    }
-};
-
-// Play song using hidden iframe
-function playSong(videoId, thumbnailSrc, songTitle, composer){
-    currentVideoId = videoId;
-    if(player && player.loadVideoById){
-        player.loadVideoById(videoId);
-        player.playVideo();
-    }
-
-    fullThumbnailImg.src = thumbnailSrc;
-    fullscreenThumbnail.classList.add("show");
-    setTimeout(() => fullscreenThumbnail.classList.remove("show"), 3000);
-
-    miniThumbnail.src = thumbnailSrc;
-    miniSongTitle.textContent = songTitle;
-    miniComposer.textContent = composer;
-    bottomPlayerBar.classList.add("show");
-}
-
-// Play/pause
-miniPlayBtn.onclick = () => {
-    if(player){
-        if(isPlaying) player.pauseVideo();
-        else player.playVideo();
-    }
-};
-
-// Volume
-miniVolume.oninput = () => {
-    if(player) player.setVolume(miniVolume.value * 100);
-    volumeValue.textContent = Math.round(miniVolume.value * 100) + "%";
-};
-</script>
+  <footer>
+    Abhiram .dev
+  </footer>
 </body>
 </html>
