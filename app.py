@@ -14,7 +14,9 @@ def index():
 def serve_static(path):
     return send_from_directory(".", path)
 
+# ===============================
 # ✅ Search YouTube
+# ===============================
 @app.route("/api/search")
 def search():
     query = request.args.get("q")
@@ -37,7 +39,7 @@ def search():
 
         songs = []
         for r in results:
-            if r is None:
+            if not r:
                 continue
             songs.append({
                 "id": r.get("id"),
@@ -52,7 +54,9 @@ def search():
         print("Search error:", e)
         return jsonify({"error": str(e)}), 500
 
+# ===============================
 # ✅ Play YouTube audio
+# ===============================
 @app.route("/api/play", methods=["POST"])
 def play():
     data = request.get_json()
@@ -62,7 +66,7 @@ def play():
 
     try:
         ydl_opts = {
-            "format": "bestaudio/best",
+            "format": "bestaudio[ext=m4a]/bestaudio/best",
             "quiet": True,
             "nocheckcertificate": True,
             "ignoreerrors": True,
@@ -70,14 +74,26 @@ def play():
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+
+            if not info:
+                return jsonify({"error": "Failed to fetch video info"}), 500
+
             audio_url = info.get("url")
+            if not audio_url:
+                return jsonify({"error": "No audio stream available"}), 500
 
         return jsonify({"url": audio_url})
+
+    except yt_dlp.utils.DownloadError as de:
+        print("yt_dlp DownloadError:", de)
+        return jsonify({"error": "yt_dlp failed to fetch the video. It may be restricted or unavailable."}), 500
     except Exception as e:
-        print("Play error:", e)
+        print("Unexpected Play error:", e)
         return jsonify({"error": str(e)}), 500
 
+# ===============================
 # Run app
+# ===============================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
