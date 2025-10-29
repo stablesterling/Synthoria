@@ -52,6 +52,31 @@ def search():
         print("Search error:", e)
         return jsonify({"error": str(e)}), 500
 
+# ✅ Play YouTube audio
+@app.route("/api/play", methods=["POST"])
+def play():
+    data = request.get_json()
+    video_id = data.get("video_id")
+    if not video_id:
+        return jsonify({"error": "No video ID provided"}), 400
+
+    try:
+        ydl_opts = {
+            "format": "bestaudio/best",
+            "quiet": True,
+            "nocheckcertificate": True,
+            "ignoreerrors": True,
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
+            audio_url = info.get("url")
+
+        return jsonify({"url": audio_url})
+    except Exception as e:
+        print("Play error:", e)
+        return jsonify({"error": str(e)}), 500
+
 # Run app
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
